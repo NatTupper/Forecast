@@ -1,0 +1,8 @@
+#pragma once
+
+#define COLOR_WHITE 0xFFFFFFFF
+#define COLOR_BLACK 0xFFFFFFFF
+
+#define FONTSIZE_SMALL 0.5
+#define FONTSIZE_MEDIUM 0.75
+#define FONTSIZE_LARGE 0.9
