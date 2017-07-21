@@ -31,9 +31,8 @@ void init(){
 
 int main(){
 	init();
-	loc_t loc;
-	weather_t* weather; 
-	int units = 0;
+	weather_t* weather;
+	conf_t conf;
 
 	screen_begin_frame();
 	screen_select(GFX_TOP);
@@ -42,8 +41,11 @@ int main(){
 		draw_bottom_frame();
 	screen_end_frame();
 
-	weather = get_weather(loc, AUTODETECT);
+	conf = get_config();
+
+	weather = get_weather(conf);
 	if(weather == NULL){
+		log_output("weather was NULL\n");
 		cleanup();
 		return 0;
 	}
@@ -55,9 +57,9 @@ int main(){
 		screen_begin_frame();
 
 		screen_select(GFX_TOP);
-		draw_weather_top(weather, units);
+		draw_weather_top(weather);
 		screen_select(GFX_BOTTOM);
-		draw_weather_bottom(weather, units);
+		draw_weather_bottom(weather);
 
 		hidScanInput();
 
@@ -71,13 +73,15 @@ int main(){
 			hidTouchRead(&pos);
 
 			if(pos.py >= 192 && pos.py < BOTTOM_SCREEN_HEIGHT){
-				units = (pos.px >= 0 && pos.px < BOTTOM_SCREEN_WIDTH/2)?0:1;
+				weather->units = (pos.px >= 0 && pos.px < BOTTOM_SCREEN_WIDTH/2)?0:1;
+				conf.units = (weather->units == 0)?"imperial":"metric";
 			}
 		}
 
 		screen_end_frame();
 	}
 
+	set_config(conf);
 	// Exit services
 	cleanup();
 	return 0;

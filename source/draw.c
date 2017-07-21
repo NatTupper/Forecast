@@ -16,7 +16,8 @@ void draw_bottom_frame(){
 	screen_draw_texture(TEXTURE_BOTTOM_SCREEN_BG, 0, 0, 320, 240);
 }
 
-void draw_weather_top(weather_t* weather, int units){
+void draw_weather_top(weather_t* weather){
+	int units = weather->units;
 	int id = weather->id;
 	char* desc = weather->desc;
 	double temp = (units == 0)?(1.8*(weather->temp - 273) + 32):(weather->temp - 273);
@@ -45,8 +46,9 @@ void draw_weather_top(weather_t* weather, int units){
 	screen_draw_string(locationString, locationXCoord, 177, 1.0f, 1.0f, COLOR_WHITE, false);
 }
 
-void draw_weather_bottom(weather_t* weather, int units){
+void draw_weather_bottom(weather_t* weather){
 	int humidity = weather->humidity;
+	int units = weather->units;
 	double wind_speed = (units == 0)?(weather->wind_speed / 0.44704):(weather->wind_speed);
 
 	char* humidityString = calloc(20, 1);

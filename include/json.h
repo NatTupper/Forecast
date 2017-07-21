@@ -1,11 +1,14 @@
 #pragma once
 
-typedef enum{AUTODETECT, COORDS, ZIP} loc_type;
+#include <jansson.h>
 
-typedef union{
-	double* coords;
+typedef struct{
 	int zipcode;
-} loc_t;
+	double lat;
+	double lon;
+	char* api_key;
+	char* units;
+} conf_t;
 
 typedef struct{
 	int id;
@@ -15,7 +18,10 @@ typedef struct{
 	double wind_speed;
 	char* name;
 	char* country;
+	int units;
 } weather_t;
 
 double* get_geocoords();
-weather_t* get_weather(loc_t loc, loc_type type);
+weather_t* get_weather(conf_t conf);
+conf_t get_config();
+void set_config(conf_t conf);
