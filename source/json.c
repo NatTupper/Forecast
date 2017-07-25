@@ -1,13 +1,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <stdlib.h>
 #include <3ds.h>
 #include <jansson.h>
 
+#include "common.h"
 #include "util.h"
 #include "http.h"
 #include "json.h"
+#include "draw.h"
+#include "screen.h"
 
 double* get_geocoords(){
 	json_t* root;
@@ -53,7 +56,7 @@ double* get_geocoords(){
 	return coords;
 }
 
-weather_t* get_weather(conf_t conf){
+weather_t* get_weather(conf_t conf, int index){
 	weather_t* weather = malloc(sizeof(weather_t));
 	char* baseZipUrl = "http://api.openweathermap.org/data/2.5/weather?zip=%05d&appid=%s";
 	char* baseCoordsUrl = "http://api.openweathermap.org/data/2.5/weather?lat=%lf&lon=%lf&appid=%s";
@@ -63,7 +66,7 @@ weather_t* get_weather(conf_t conf){
 	json_t* child;
 	char* url = calloc(256, 1);
 
-	if(conf.zipcode == -1 && conf.lat == -1.0){
+	if(conf.places[index].zipcode == -1 && conf.places[index].lat == -1.0){
 		double* coords = get_geocoords();
 		if(coords == NULL){
 			log_output("coords are NULL\n");
@@ -73,11 +76,11 @@ weather_t* get_weather(conf_t conf){
 		lon = coords[1];
 		sprintf(url, baseCoordsUrl, lat, lon, conf.api_key);
 	}
-	else if(conf.zipcode == -1){
-		sprintf(url, baseCoordsUrl, conf.lat, conf.lon, conf.api_key);
+	else if(conf.places[index].zipcode == -1){
+		sprintf(url, baseCoordsUrl, conf.places[index].lat, conf.places[index].lon, conf.api_key);
 	}
 	else{
-		sprintf(url, baseZipUrl, conf.zipcode, conf.api_key);
+		sprintf(url, baseZipUrl, conf.places[index].zipcode, conf.api_key);
 	}
 
 	if(strcmp("imperial", conf.units) == 0)
@@ -85,7 +88,15 @@ weather_t* get_weather(conf_t conf){
 	else
 		weather->units = 1;
 
+	float width;
+	float height;
+	screen_get_string_size(&width, &height, "Loading...", 1.0f, 1.0f);
+	screen_draw_string("Loading...", BOTTOM_SCREEN_WIDTH/2-width/2, BOTTOM_SCREEN_HEIGHT/2-height/2, 1.0f, 1.0f, COLOR_WHITE, false);
+	screen_end_frame();
 	char* text = http_download(url);
+	screen_begin_frame();
+	screen_select(GFX_BOTTOM);
+	screen_draw_string("Loading...", BOTTOM_SCREEN_WIDTH/2-width/2, BOTTOM_SCREEN_HEIGHT/2-height/2, 1.0f, 1.0f, COLOR_WHITE, false);
 
 	root = json_loads(text, 0, NULL);
 	if(!root){
@@ -167,6 +178,7 @@ conf_t get_config(){
 	const char* sdmcPath = "/weather/config.json";
 	json_t* root;
 	json_t* child;
+	json_t* subchild;
 	conf_t conf;
 
 	if(access(sdmcPath, F_OK) != -1)
@@ -178,24 +190,8 @@ conf_t get_config(){
 		return conf;
 	}
 
-	child = json_object_get(root, "zipcode");
-	if(!child){
-		log_output("zipcode is NULL\n");
-		return conf;
-	}
-	conf.zipcode = json_integer_value(child);
-	child = json_object_get(root, "lat");
-	if(!child){
-		log_output("lat is NULL\n");
-		return conf;
-	}
-	conf.lat = json_real_value(child);
-	child = json_object_get(root, "lon");
-	if(!child){
-		log_output("lon is NULL\n");
-		return conf;
-	}
-	conf.lon = json_real_value(child);
+	conf.places = malloc(3*sizeof(place_t));
+
 	child = json_object_get(root, "api_key");
 	if(!child){
 		log_output("api_key is NULL\n");
@@ -208,30 +204,85 @@ conf_t get_config(){
 		return conf;
 	}
 	conf.units = (char*)json_string_value(child);
+	root = json_object_get(root, "places");
+	int i;
+	for(i = 0; i < 3; i++){
+		child = json_array_get(root, i);
+
+		subchild = json_object_get(child, "name");
+		conf.places[i].name = json_string_value(subchild);
+
+		subchild = json_object_get(child, "zipcode");
+		conf.places[i].zipcode = json_integer_value(subchild);
+
+		subchild = json_object_get(child, "lat");
+		conf.places[i].lat = json_real_value(subchild);
+
+		subchild = json_object_get(child, "lon");
+		conf.places[i].lon = json_real_value(subchild);
+	}
 
 	return conf;
 }
 
 void set_config(conf_t conf){
 	json_t* root;
-	json_t* child;
+	json_t* childA;
+	json_t* childB;
+	json_t* childC;
 
 	root = json_object();
 
-	child = json_integer(conf.zipcode);
-	json_object_set(root, "zipcode", child);
+	childA = json_string(conf.api_key);
+	json_object_set(root, "api_key", childA);
 
-	child = json_real(conf.lat);
-	json_object_set(root, "lat", child);
+	childA = json_string(conf.units);
+	json_object_set(root, "units", childA);
 
-	child = json_real(conf.lon);
-	json_object_set(root, "lon", child);
+	childA = json_array();
+	int i;
+	for(i = 0; i < 3; i++){
+		childB = json_object();
+		json_array_append(childA, childB);
 
-	child = json_string(conf.api_key);
-	json_object_set(root, "api_key", child);
+		childC = json_string(conf.places[i].name);
+		json_object_set(childB, "name", childC);
 
-	child = json_string(conf.units);
-	json_object_set(root, "units", child);
+		childC = json_integer(conf.places[i].zipcode);
+		json_object_set(childB, "zipcode", childC);
+
+		childC = json_real(conf.places[i].lat);
+		json_object_set(childB, "lat", childC);
+
+		childC = json_real(conf.places[i].lon);
+		json_object_set(childB, "lon", childC);
+	}
+
+	json_object_set(root, "places", childA);
 
 	json_dump_file(root, "/weather/config.json", 0);
+}
+
+place_t set_place(place_t place){
+	SwkbdState swkbd;
+	char* mybuf;
+
+	mybuf = calloc(10, 1);
+	swkbdInit(&swkbd, SWKBD_TYPE_NUMPAD, 2, 5);
+	swkbdSetHintText(&swkbd, "Enter zipcode");
+	swkbdSetButton(&swkbd, SWKBD_BUTTON_LEFT, "Cancel", false);
+	swkbdSetButton(&swkbd, SWKBD_BUTTON_RIGHT, "OK", true);
+	swkbdInputText(&swkbd, mybuf, 10);
+	place.zipcode = atoi(mybuf);
+	free(mybuf);
+
+	mybuf = calloc(60, 1);
+	swkbdInit(&swkbd, SWKBD_TYPE_NORMAL, 2, -1);
+	swkbdSetHintText(&swkbd, "Enter a name for this place");
+	swkbdSetButton(&swkbd, SWKBD_BUTTON_LEFT, "Cancel", false);
+	swkbdSetButton(&swkbd, SWKBD_BUTTON_RIGHT, "OK", true);
+	swkbdInputText(&swkbd, mybuf, 60);
+	place.name = mybuf;
+
+	return place;
 }

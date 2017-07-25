@@ -170,8 +170,8 @@ void screen_init() {
 	screen_load_texture_file(TEXTURE_SUN_WITH_CLOUD, "romfs:/sun_with_cloud.png", true);
 	screen_load_texture_file(TEXTURE_SUN_WITH_RAIN, "romfs:/sun_with_rain.png", true);
 	screen_load_texture_file(TEXTURE_QUESTION, "romfs:/question.png", true);
-	screen_load_texture_file(TEXTURE_TOGGLED_BOX, "romfs:/toggled_box.png", true);
-	screen_load_texture_file(TEXTURE_UNTOGGLED_BOX, "romfs:/untoggled_box.png", true);
+	screen_load_texture_file(TEXTURE_MENUBAR, "romfs:/menubar.png", true);
+	screen_load_texture_file(TEXTURE_MENU_OVERLAY, "romfs:/menu_overlay.png", true);
 }
 
 void screen_exit() {
