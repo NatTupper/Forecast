@@ -273,6 +273,9 @@ place_t set_place(place_t place){
 	swkbdSetButton(&swkbd, SWKBD_BUTTON_LEFT, "Cancel", false);
 	swkbdSetButton(&swkbd, SWKBD_BUTTON_RIGHT, "OK", true);
 	swkbdInputText(&swkbd, mybuf, 10);
+	if(strlen(mybuf) < 1){
+		return place;
+	}
 	place.zipcode = atoi(mybuf);
 	free(mybuf);
 
@@ -282,6 +285,9 @@ place_t set_place(place_t place){
 	swkbdSetButton(&swkbd, SWKBD_BUTTON_LEFT, "Cancel", false);
 	swkbdSetButton(&swkbd, SWKBD_BUTTON_RIGHT, "OK", true);
 	swkbdInputText(&swkbd, mybuf, 60);
+	if(strlen(mybuf) < 1){
+		return place;
+	}
 	place.name = mybuf;
 
 	return place;
